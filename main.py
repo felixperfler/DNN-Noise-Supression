@@ -90,9 +90,8 @@ def main():
                     noisy_signal = batch['noisy_signal'].to(DEVICE)
                     target_signal = batch['target_signal'].to(DEVICE)
 
-                    noisy_signal_log = torch.log(torch.abs(noisy_signal).to(torch.float32).to(DEVICE) +\
-                                            torch.ones(noisy_signal.shape, dtype=torch.float32).to(DEVICE) * 1e-8).to(DEVICE)
-
+                    noisy_signal_log = torch.log(torch.abs(noisy_signal).to(torch.float32) +\
+                                            torch.ones(noisy_signal.shape, dtype=torch.float32).to(DEVICE) * 1e-8)
                     output_mask = model(noisy_signal_log)
                     output_signal = torch.mul(noisy_signal, output_mask.to(noisy_signal.dtype))
 
