@@ -22,14 +22,14 @@ np.random.seed(0)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 EPOCHS = 300
-VAL_EVERY = 10
+VAL_EVERY = 3
 
 def main():
 
     model = DNN()
     model.to(DEVICE)
 
-    print("#params of model: ", sum(p.numel() for p in model.parameters() if p.requires_grad))
+    print("#params of model: ", sum(p.numel() for p in model.parameters()))
 
     loss_fn = ComplexCompressedMSELoss()
 
@@ -67,18 +67,12 @@ def main():
 
             optimizer.step()
 
-        prediction_sample_time_domain = librosa.istft(output_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-        writer.add_audio('Prediction Train', prediction_sample_time_domain, epoch, sample_rate=16000)
-        target_sample_time_domain = librosa.istft(target_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-        writer.add_audio('Target Train', target_sample_time_domain, epoch, sample_rate=16000)
-        noisy_sample_time_domain = librosa.istft(noisy_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-        writer.add_audio('Noisy Train', noisy_sample_time_domain, epoch, sample_rate=16000)
-
-        pesq = calculate_pesq(target_signal, output_signal)
-        writer.add_scalar('PESQ Train (last batch only)', pesq, epoch)
-        writer.add_scalar('SISDR Train (last batch only)',
-                          calculate_sisdr(torch.abs(torch.swapaxes(target_signal.detach().cpu(), 1, 2)),
-                                          torch.abs(torch.swapaxes(output_signal.detach().cpu(), 1, 2))), epoch)
+        # prediction_sample_time_domain = librosa.istft(output_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
+        # writer.add_audio('Prediction Train', prediction_sample_time_domain, epoch, sample_rate=16000)
+        # target_sample_time_domain = librosa.istft(target_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
+        # writer.add_audio('Target Train', target_sample_time_domain, epoch, sample_rate=16000)
+        # noisy_sample_time_domain = librosa.istft(noisy_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
+        # writer.add_audio('Noisy Train', noisy_sample_time_domain, epoch, sample_rate=16000)
 
         if epoch % VAL_EVERY == 0:
             running_val_loss = 0
