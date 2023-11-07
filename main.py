@@ -35,11 +35,11 @@ def main():
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001)
 
-    dataset_train = DNSChallangeDataset(datapath="datasets",
+    dataset_train = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="train")
     dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True, num_workers=4)
 
-    dataset_val = DNSChallangeDataset(datapath="datasets",
+    dataset_val = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="val")
     dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=False, num_workers=4)
 
