@@ -37,11 +37,11 @@ def main():
 
     dataset_train = DNSChallangeDataset(datapath="datasets",
                                     split="train")
-    dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True, num_workers=2)
+    dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True, num_workers=4)
 
     dataset_val = DNSChallangeDataset(datapath="datasets",
                                     split="val")
-    dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=False, num_workers=2)
+    dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=False, num_workers=4)
 
     # init tensorboard
     writer = SummaryWriter(f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
