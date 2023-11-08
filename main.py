@@ -11,7 +11,7 @@ import numpy as np
 from src.datasets import DNSChallangeDataset
 from src.model import DNN
 from src.losses import ComplexCompressedMSELoss
-from src.metrics import calculate_pesq, calculate_sisdr
+#from src.metrics import calculate_pesq, calculate_sisdr
 
 # set seed
 torch.manual_seed(0)
@@ -21,8 +21,10 @@ random.seed(0)
 np.random.seed(0)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-EPOCHS = 300
-VAL_EVERY = 3
+EPOCHS = 1
+VAL_EVERY = 1
+BATCH_SIZE = 4
+NUM_WORKERS = 2
 
 def main():
 
@@ -37,11 +39,11 @@ def main():
 
     dataset_train = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="train")
-    dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True, num_workers=4)
+    dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
     dataset_val = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="val")
-    dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=False, num_workers=4)
+    dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     # init tensorboard
     writer = SummaryWriter(f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
@@ -92,10 +94,10 @@ def main():
                     loss = loss_fn(output_signal, target_signal)
                     running_val_loss += loss.item()
 
-                    pesq += calculate_pesq(target_signal, output_signal)
+                    # pesq += calculate_pesq(target_signal, output_signal)
 
-                    sisdr += calculate_sisdr(torch.abs(torch.swapaxes(target_signal.detach().cpu(), 1, 2)),
-                                             torch.abs(torch.swapaxes(output_signal.detach().cpu(), 1, 2)))
+                    # sisdr += calculate_sisdr(torch.abs(torch.swapaxes(target_signal.detach().cpu(), 1, 2)),
+                    #                          torch.abs(torch.swapaxes(output_signal.detach().cpu(), 1, 2)))
 
             prediction_sample_time_domain = librosa.istft(output_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
             writer.add_audio('Prediction Val', prediction_sample_time_domain, epoch, sample_rate=16000)
@@ -104,8 +106,8 @@ def main():
             noisy_sample_time_domain = librosa.istft(noisy_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
             writer.add_audio('Noisy Val', noisy_sample_time_domain, epoch, sample_rate=16000)
 
-            writer.add_scalar('PESQ Val', pesq / len(dataloader_val), epoch)
-            writer.add_scalar('SISDR Val', sisdr / len(dataloader_val), epoch)
+            # writer.add_scalar('PESQ Val', pesq / len(dataloader_val), epoch)
+            # writer.add_scalar('SISDR Val', sisdr / len(dataloader_val), epoch)
 
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),
                                         'Val': running_val_loss / len(dataloader_val)}, epoch)
