@@ -94,24 +94,15 @@ class DNSChallangeDataset(Dataset):
         noisy_snr = noisy_snr[:self.sig_length*self.fs]
 
         # calulate spectrograms
-        clean_snr_fft = librosa.stft(clean_snr, n_fft=512, hop_length=256).T
-        noisy_snr_fft = librosa.stft(noisy_snr, n_fft=512, hop_length=256).T
+        # clean_snr_fft = librosa.stft(clean_snr, n_fft=512, hop_length=256).T
+        # noisy_snr_fft = librosa.stft(noisy_snr, n_fft=512, hop_length=256).T
+
+        # return {
+        #     'target_signal':clean_snr_fft.astype(np.complex64),
+        #     'noisy_signal':noisy_snr_fft.astype(np.complex64),
+        # }
 
         return {
-            'target_signal':clean_snr_fft.astype(np.complex64),
-            'noisy_signal':noisy_snr_fft.astype(np.complex64),
-        }
-
-class DNSChallangeTestDataset(Dataset):
-    def __init__(self,
-                 datapath:str,):
-        self.files = [f"{datapath}/{f}" for f in os.listdir(datapath) if f.endswith(".wav")]
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, idx):
-        clean_speech, _ = soundfile.read(self.files[idx])
-        return {
-            'target_signal':clean_speech,
+            'target_signal':clean_snr.astype(np.float32),
+            'noisy_signal':noisy_snr.astype(np.float32),
         }

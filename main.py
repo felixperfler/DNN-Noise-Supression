@@ -9,7 +9,7 @@ import librosa
 import numpy as np
 
 from src.datasets import DNSChallangeDataset
-from src.model import DNN
+from conv_tasnet import TasNet
 from src.losses import ComplexCompressedMSELoss
 from src.metrics import calculate_pesq, calculate_sisdr
 
@@ -26,7 +26,7 @@ VAL_EVERY = 3
 
 def main():
 
-    model = DNN()
+    model = TasNet()
     model.to(DEVICE)
 
     print("#params of model: ", sum(p.numel() for p in model.parameters()))
