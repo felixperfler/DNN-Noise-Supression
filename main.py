@@ -26,7 +26,10 @@ VAL_EVERY = 3
 
 def main():
 
-    model = TasNet()
+    model = TasNet(
+        enc_dim=256,
+        kernel=3,
+    )
     model.to(DEVICE)
 
     print("#params of model: ", sum(p.numel() for p in model.parameters()))
@@ -37,11 +40,11 @@ def main():
 
     dataset_train = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="train")
-    dataloader_train = DataLoader(dataset_train, batch_size=32, shuffle=True, num_workers=4)
+    dataloader_train = DataLoader(dataset_train, batch_size=8, shuffle=True, num_workers=4)
 
     dataset_val = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="val")
-    dataloader_val = DataLoader(dataset_val, batch_size=32, shuffle=False, num_workers=4)
+    dataloader_val = DataLoader(dataset_val, batch_size=8, shuffle=False, num_workers=4)
 
     # init tensorboard
     writer = SummaryWriter(f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
@@ -55,11 +58,7 @@ def main():
 
             optimizer.zero_grad()
 
-            noisy_signal_log = torch.log(torch.abs(noisy_signal).to(torch.float32) +\
-                                      torch.ones(noisy_signal.shape, dtype=torch.float32).to(DEVICE) * 1e-8)
-
-            output_mask = model(noisy_signal_log)
-            output_signal = torch.mul(noisy_signal, output_mask.to(noisy_signal.dtype))
+            output_signal = model(noisy_signal)[:,0,:]
 
             loss = loss_fn(output_signal, target_signal)
             running_loss += loss.item()
@@ -84,10 +83,7 @@ def main():
                     noisy_signal = batch['noisy_signal'].to(DEVICE)
                     target_signal = batch['target_signal'].to(DEVICE)
 
-                    noisy_signal_log = torch.log(torch.abs(noisy_signal).to(torch.float32) +\
-                                            torch.ones(noisy_signal.shape, dtype=torch.float32).to(DEVICE) * 1e-8)
-                    output_mask = model(noisy_signal_log)
-                    output_signal = torch.mul(noisy_signal, output_mask.to(noisy_signal.dtype))
+                    output_signal = model(noisy_signal)[:,0,:]
 
                     loss = loss_fn(output_signal, target_signal)
                     running_val_loss += loss.item()
