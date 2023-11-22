@@ -52,10 +52,10 @@ class TasNet(nn.Module):
         nsample = input.size(2)
         rest = self.win - (self.stride + nsample % self.win) % self.win
         if rest > 0:
-            pad = Variable(torch.zeros(batch_size, 1, rest)).type(input.type())
+            pad = Variable(torch.zeros(batch_size, 1, rest)).type(torch.float32).to(input.device)
             input = torch.cat([input, pad], 2)
         
-        pad_aux = Variable(torch.zeros(batch_size, 1, self.stride)).type(input.type())
+        pad_aux = Variable(torch.zeros(batch_size, 1, self.stride)).type(torch.float32).to(input.device)
         input = torch.cat([pad_aux, input, pad_aux], 2)
 
         return input, rest

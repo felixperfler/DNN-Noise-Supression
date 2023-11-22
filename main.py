@@ -1,3 +1,4 @@
+from cProfile import label
 import os
 import datetime
 import random
@@ -20,9 +21,13 @@ torch.backends.cudnn.benchmark = False
 random.seed(0)
 np.random.seed(0)
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("mps")
 EPOCHS = 300
 VAL_EVERY = 3
+KAPPA_BETA = 0.3
+BATCH_SIZE = 4
+NUM_WORKERS = 2
 
 def main():
 
@@ -34,17 +39,21 @@ def main():
 
     print("#params of model: ", sum(p.numel() for p in model.parameters()))
 
-    loss_fn = ComplexCompressedMSELoss()
+    if KAPPA_BETA == None:
+        loss_fn = ComplexCompressedMSELoss()
+    else:
+        loss_fn = ComplexCompressedMSELoss(beta=KAPPA_BETA)
+        
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001)
 
     dataset_train = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="train")
-    dataloader_train = DataLoader(dataset_train, batch_size=8, shuffle=True, num_workers=4)
+    dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
     dataset_val = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="val")
-    dataloader_val = DataLoader(dataset_val, batch_size=8, shuffle=False, num_workers=4)
+    dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     # init tensorboard
     writer = SummaryWriter(f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
@@ -60,7 +69,33 @@ def main():
 
             output_signal = model(noisy_signal)[:,0,:]
 
-            loss = loss_fn(output_signal, target_signal)
+
+            # import matplotlib.pyplot as plt 
+
+            # t = np.arange(0,noisy_signal.shape[1]) / 16000
+
+            # plt.figure()
+            # plt.plot(t, noisy_signal[0], label='noisy signal')
+            # plt.plot(t, target_signal[0], label='target signal')
+            # plt.plot(t, output_signal.detach().numpy()[0], label='enhanced signal')
+            # plt.title(f'Signals in the time domain at epoch {epoch}')
+            # plt.xlabel('Time in [s]')
+            # plt.legend()
+
+            # plt.figure()
+            # plt.imshow(model.encoder.weight.detach().numpy().squeeze(1), origin='lower')
+            # plt.title(f'Encoder Filterbank at epoch {epoch}')
+
+            # plt.show()
+
+            if KAPPA_BETA != None:
+
+                # get encoder weights for optimization
+                encoder_filterbank = model.encoder.weight.squeeze(1)
+                base_loss, loss = loss_fn(output_signal, target_signal, encoder_filterbank)
+            else:
+                loss = loss_fn(output_signal, target_signal)
+            
             running_loss += loss.item()
             loss.backward()
 
