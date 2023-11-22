@@ -4,7 +4,7 @@ import datetime
 import random
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
 import librosa
 import numpy as np
@@ -21,8 +21,8 @@ torch.backends.cudnn.benchmark = False
 random.seed(0)
 np.random.seed(0)
 
-# DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-DEVICE = torch.device("mps")
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# DEVICE = torch.device("mps")
 EPOCHS = 300
 VAL_EVERY = 3
 KAPPA_BETA = 0.3

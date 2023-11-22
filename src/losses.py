@@ -2,7 +2,7 @@ from sympy import false
 import torch
 
 class ComplexCompressedMSELoss(torch.nn.Module):
-    def __init__(self, beta=0):
+    def __init__(self, beta: float=0.):
         super().__init__()
 
         self.c = 0.3
