@@ -20,22 +20,23 @@ torch.backends.cudnn.benchmark = False
 random.seed(0)
 np.random.seed(0)
 
-DEVICE = torch.device("mps")  if torch.backends.mps.is_available() \
-            else torch.device("cuda") if torch.cuda.is_available() \
-            else torch.device("cpu")
-
 EPOCHS = 300
 VAL_EVERY = 3
-KAPPA_BETA = None
-# if KAPPA_BETA is not None and DEVICE is mps switch to cpu (because of fft)
-if KAPPA_BETA != None and DEVICE == torch.device("mps"):
-    DEVICE = torch.device("cpu")
-print(f"Using device: {DEVICE}")
+KAPPA_BETA = 0.1
 BATCH_SIZE = 4
 NUM_WORKERS = 2
 MODEL_FILE = None
 
 def main():
+
+    device = torch.device("mps")  if torch.backends.mps.is_available() \
+            else torch.device("cuda") if torch.cuda.is_available() \
+            else torch.device("cpu")
+    
+    # if KAPPA_BETA is not None and DEVICE is mps switch to cpu (because of fft)
+    if KAPPA_BETA != None and device == torch.device("mps"):
+        device = torch.device("cpu")
+    print(f"Using device: {device}")
 
     model = TasNet(
         enc_dim=256,
@@ -48,7 +49,7 @@ def main():
         epoch = checkpoint['epoch']
     else:
         epoch = 0
-    model.to(DEVICE)
+    model.to(device)
 
     print("#params of model: ", sum(p.numel() for p in model.parameters()))
 
@@ -79,8 +80,8 @@ def main():
         running_loss = 0
         model.train()
         for batch in tqdm(dataloader_train):
-            noisy_signal = batch['noisy_signal'].to(DEVICE)
-            target_signal = batch['target_signal'].to(DEVICE)
+            noisy_signal = batch['noisy_signal'].to(device)
+            target_signal = batch['target_signal'].to(device)
 
             optimizer.zero_grad()
 
@@ -132,8 +133,8 @@ def main():
             model.eval()
             with torch.no_grad():
                 for batch in tqdm(dataloader_val):
-                    noisy_signal = batch['noisy_signal'].to(DEVICE)
-                    target_signal = batch['target_signal'].to(DEVICE)
+                    noisy_signal = batch['noisy_signal'].to(device)
+                    target_signal = batch['target_signal'].to(device)
 
                     output_signal = model(noisy_signal)[:,0,:]
 
