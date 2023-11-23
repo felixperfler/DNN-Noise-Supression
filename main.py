@@ -40,7 +40,6 @@ def main():
     if MODEL_FILE != None:
         checkpoint = torch.load(MODEL_FILE)
         model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         epoch = checkpoint['epoch']
     else:
         epoch = 0
@@ -55,6 +54,10 @@ def main():
         
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001)
+    
+    if MODEL_FILE != None:
+        checkpoint = torch.load(MODEL_FILE)
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     dataset_train = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
                                     split="train")
