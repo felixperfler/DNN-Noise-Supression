@@ -20,11 +20,17 @@ torch.backends.cudnn.benchmark = False
 random.seed(0)
 np.random.seed(0)
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# DEVICE = torch.device("mps")
+DEVICE = torch.device("mps")  if torch.backends.mps.is_available() \
+            else torch.device("cuda") if torch.cuda.is_available() \
+            else torch.device("cpu")
+
 EPOCHS = 300
 VAL_EVERY = 3
-KAPPA_BETA = 0.3
+KAPPA_BETA = None
+# if KAPPA_BETA is not None and DEVICE is mps switch to cpu (because of fft)
+if KAPPA_BETA != None and DEVICE == torch.device("mps"):
+    DEVICE = torch.device("cpu")
+print(f"Using device: {DEVICE}")
 BATCH_SIZE = 4
 NUM_WORKERS = 2
 MODEL_FILE = None
@@ -81,23 +87,23 @@ def main():
             output_signal = model(noisy_signal)[:,0,:]
 
 
-            import matplotlib.pyplot as plt 
+            # import matplotlib.pyplot as plt 
 
-            t = np.arange(0,noisy_signal.shape[1]) / 16000
+            # t = np.arange(0,noisy_signal.cpu().detach().numpy().shape[1]) / 16000
 
-            plt.figure()
-            plt.plot(t, noisy_signal[0], label='noisy signal')
-            plt.plot(t, target_signal[0], label='target signal')
-            plt.plot(t, output_signal.detach().numpy()[0], label='enhanced signal')
-            plt.title(f'Signals in the time domain at epoch {epoch}')
-            plt.xlabel('Time in [s]')
-            plt.legend()
+            # plt.figure()
+            # plt.plot(t, noisy_signal.cpu().detach().numpy()[0], label='noisy signal')
+            # plt.plot(t, target_signal.cpu().detach().numpy()[0], label='target signal')
+            # plt.plot(t, output_signal.cpu().detach().numpy()[0], label='enhanced signal')
+            # plt.title(f'Signals in the time domain at epoch {epoch}')
+            # plt.xlabel('Time in [s]')
+            # plt.legend()
 
-            plt.figure()
-            plt.imshow(model.encoder.weight.detach().numpy().squeeze(1), origin='lower')
-            plt.title(f'Encoder Filterbank at epoch {epoch}')
+            # plt.figure()
+            # plt.imshow(model.encoder.weight.cpu().detach().numpy().squeeze(1), origin='lower')
+            # plt.title(f'Encoder Filterbank at epoch {epoch}')
 
-            plt.show()
+            # plt.show()
 
             if KAPPA_BETA != None:
 
