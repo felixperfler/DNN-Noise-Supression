@@ -28,6 +28,7 @@ VAL_EVERY = 3
 KAPPA_BETA = 0.3
 BATCH_SIZE = 4
 NUM_WORKERS = 2
+MODEL_FILE = None
 
 def main():
 
@@ -35,6 +36,14 @@ def main():
         enc_dim=256,
         kernel=3,
     )
+
+    if MODEL_FILE != None:
+        checkpoint = torch.load(MODEL_FILE)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+    else:
+        epoch = 0
     model.to(DEVICE)
 
     print("#params of model: ", sum(p.numel() for p in model.parameters()))
@@ -58,7 +67,7 @@ def main():
     # init tensorboard
     writer = SummaryWriter(f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
-    for epoch in range(EPOCHS):
+    while epoch < EPOCHS:
         running_loss = 0
         model.train()
         for batch in tqdm(dataloader_train):
@@ -70,23 +79,23 @@ def main():
             output_signal = model(noisy_signal)[:,0,:]
 
 
-            # import matplotlib.pyplot as plt 
+            import matplotlib.pyplot as plt 
 
-            # t = np.arange(0,noisy_signal.shape[1]) / 16000
+            t = np.arange(0,noisy_signal.shape[1]) / 16000
 
-            # plt.figure()
-            # plt.plot(t, noisy_signal[0], label='noisy signal')
-            # plt.plot(t, target_signal[0], label='target signal')
-            # plt.plot(t, output_signal.detach().numpy()[0], label='enhanced signal')
-            # plt.title(f'Signals in the time domain at epoch {epoch}')
-            # plt.xlabel('Time in [s]')
-            # plt.legend()
+            plt.figure()
+            plt.plot(t, noisy_signal[0], label='noisy signal')
+            plt.plot(t, target_signal[0], label='target signal')
+            plt.plot(t, output_signal.detach().numpy()[0], label='enhanced signal')
+            plt.title(f'Signals in the time domain at epoch {epoch}')
+            plt.xlabel('Time in [s]')
+            plt.legend()
 
-            # plt.figure()
-            # plt.imshow(model.encoder.weight.detach().numpy().squeeze(1), origin='lower')
-            # plt.title(f'Encoder Filterbank at epoch {epoch}')
+            plt.figure()
+            plt.imshow(model.encoder.weight.detach().numpy().squeeze(1), origin='lower')
+            plt.title(f'Encoder Filterbank at epoch {epoch}')
 
-            # plt.show()
+            plt.show()
 
             if KAPPA_BETA != None:
 
@@ -145,7 +154,14 @@ def main():
 
         if f"{os.getcwd()}/runs/models" not in os.listdir():
             os.mkdir(f"{os.getcwd()}/runs/models")
-        torch.save(model.state_dict(), f"{os.getcwd()}/runs/models/model_{epoch}.pth")
+
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            }, f"{os.getcwd()}/runs/models/model_{epoch}.pth")
+        
+        epoch += 1
 
 if __name__ == "__main__":
     main()
