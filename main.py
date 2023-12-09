@@ -7,11 +7,12 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
 import librosa
 import numpy as np
+from pesq import pesq_batch
+from torchmetrics.audio import ScaleInvariantSignalDistortionRatio
 
 from src.datasets import DNSChallangeDataset
 from conv_tasnet import TasNet
 from src.losses import ComplexCompressedMSELoss
-from src.metrics import calculate_pesq, calculate_sisdr
 
 # set seed
 torch.manual_seed(0)
@@ -23,9 +24,10 @@ np.random.seed(0)
 EPOCHS = 300
 VAL_EVERY = 3
 KAPPA_BETA = 0.1
-BATCH_SIZE = 4
+BATCH_SIZE = 8
 NUM_WORKERS = 2
 MODEL_FILE = None
+FS = 16000
 
 def main():
 
@@ -39,8 +41,15 @@ def main():
     print(f"Using device: {device}")
 
     model = TasNet(
-        enc_dim=256,
+        enc_dim=128,
         kernel=3,
+        feature_dim=64,
+        sr=FS,
+        win=2,
+        layer=8,
+        stack=3,
+        num_spk=2,
+        causal=False
     )
 
     if MODEL_FILE != None:
@@ -66,11 +75,11 @@ def main():
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     dataset_train = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
-                                    split="train")
+                                    split="train", fs=FS)
     dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
     dataset_val = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
-                                    split="val")
+                                    split="val", fs=FS)
     dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     # init tensorboard
@@ -90,7 +99,7 @@ def main():
 
             # import matplotlib.pyplot as plt 
 
-            # t = np.arange(0,noisy_signal.cpu().detach().numpy().shape[1]) / 16000
+            # t = np.arange(0,noisy_signal.cpu().detach().numpy().shape[1]) / FS
 
             # plt.figure()
             # plt.plot(t, noisy_signal.cpu().detach().numpy()[0], label='noisy signal')
@@ -106,13 +115,16 @@ def main():
 
             # plt.show()
 
+            output_signal_fft = torch.fft.rfft(output_signal)
+            target_signal_fft = torch.fft.rfft(target_signal)
+
             if KAPPA_BETA != None:
 
                 # get encoder weights for optimization
                 encoder_filterbank = model.encoder.weight.squeeze(1)
-                base_loss, loss = loss_fn(output_signal, target_signal, encoder_filterbank)
+                base_loss, loss = loss_fn(output_signal_fft, target_signal_fft, encoder_filterbank)
             else:
-                loss = loss_fn(output_signal, target_signal)
+                loss = loss_fn(output_signal_fft, target_signal_fft)
             
             running_loss += loss.item()
             loss.backward()
@@ -138,20 +150,18 @@ def main():
 
                     output_signal = model(noisy_signal)[:,0,:]
 
-                    loss = loss_fn(output_signal, target_signal)
+                    output_signal_fft = torch.fft.rfft(output_signal)
+                    target_signal_fft = torch.fft.rfft(target_signal)
+
+                    loss = loss_fn(output_signal_fft, target_signal_fft)
                     running_val_loss += loss.item()
 
-                    pesq += calculate_pesq(target_signal, output_signal)
+                    pesq += np.mean(pesq_batch(FS, np.array(target_signal), np.array(output_signal), 'wb'))
+                    sisdr += ScaleInvariantSignalDistortionRatio()(torch.abs(torch.fft.rfft(output_signal)), torch.abs(torch.fft.rfft(target_signal)))
 
-                    sisdr += calculate_sisdr(torch.abs(torch.swapaxes(target_signal.detach().cpu(), 1, 2)),
-                                             torch.abs(torch.swapaxes(output_signal.detach().cpu(), 1, 2)))
-
-            prediction_sample_time_domain = librosa.istft(output_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-            writer.add_audio('Prediction Val', prediction_sample_time_domain, epoch, sample_rate=16000)
-            target_sample_time_domain = librosa.istft(target_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-            writer.add_audio('Target Val', target_sample_time_domain, epoch, sample_rate=16000)
-            noisy_sample_time_domain = librosa.istft(noisy_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-            writer.add_audio('Noisy Val', noisy_sample_time_domain, epoch, sample_rate=16000)
+            writer.add_audio('Prediction Val', output_signal[0], epoch, sample_rate=FS)
+            writer.add_audio('Target Val', target_signal[0], epoch, sample_rate=FS)
+            writer.add_audio('Noisy Val', noisy_signal[0], epoch, sample_rate=FS)
 
             writer.add_scalar('PESQ Val', pesq / len(dataloader_val), epoch)
             writer.add_scalar('SISDR Val', sisdr / len(dataloader_val), epoch)
@@ -161,14 +171,14 @@ def main():
         else:
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),}, epoch)
 
-        if f"{os.getcwd()}/runs/models" not in os.listdir():
-            os.mkdir(f"{os.getcwd()}/runs/models")
+        # if f"{os.getcwd()}/runs/models" not in os.listdir():
+        #     os.mkdir(f"{os.getcwd()}/runs/models")
 
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            }, f"{os.getcwd()}/runs/models/model_{epoch}.pth")
+        # torch.save({
+        #     'epoch': epoch,
+        #     'model_state_dict': model.state_dict(),
+        #     'optimizer_state_dict': optimizer.state_dict(),
+        #     }, f"{os.getcwd()}/runs/models/model_{epoch}.pth")
         
         epoch += 1
 
