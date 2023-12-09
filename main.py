@@ -5,7 +5,6 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from tqdm import tqdm
-import librosa
 import numpy as np
 from pesq import pesq_batch
 from torchmetrics.audio import ScaleInvariantSignalDistortionRatio
@@ -130,13 +129,6 @@ def main():
             loss.backward()
 
             optimizer.step()
-
-        # prediction_sample_time_domain = librosa.istft(output_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-        # writer.add_audio('Prediction Train', prediction_sample_time_domain, epoch, sample_rate=16000)
-        # target_sample_time_domain = librosa.istft(target_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-        # writer.add_audio('Target Train', target_sample_time_domain, epoch, sample_rate=16000)
-        # noisy_sample_time_domain = librosa.istft(noisy_signal[0].detach().cpu().numpy().T, n_fft=512, hop_length=256)
-        # writer.add_audio('Noisy Train', noisy_sample_time_domain, epoch, sample_rate=16000)
 
         if epoch % VAL_EVERY == 0:
             running_val_loss = 0

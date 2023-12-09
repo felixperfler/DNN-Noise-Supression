@@ -11,16 +11,18 @@ from src.audio_helpers import segmental_snr_mixer
 class DNSChallangeDataset(Dataset):
     def __init__(self,
                  datapath:str,
-                 split:str,):
+                 split:str,
+                 sig_length:int=10,
+                 fs:int=16000):
 
-        self.sig_length = 10 # in seconds
-        self.fs = 16000
+        self.sig_length = sig_length # in seconds
+        self.fs = fs
 
         # get all clean speech signals
         clean_speech_signals = []
         for root, _, files in os.walk(f"{datapath}/clean"):
             for file in files:
-                if file.endswith(".wav"):
+                if file.endswith(".flac"):
                     clean_speech_signals.append(os.path.join(root, file))
 
         # scrmabel the list
@@ -33,7 +35,7 @@ class DNSChallangeDataset(Dataset):
             self.clean_speech_signals = clean_speech_signals[int(len(clean_speech_signals)*0.99):]
         else:
             raise ValueError("split must be one of train, val")
-
+        
         # get all noise signals
         noise_signals = []
         for root, _, files in os.walk(f"{datapath}/noise"):
@@ -92,15 +94,6 @@ class DNSChallangeDataset(Dataset):
 
         clean_snr = clean_snr[:self.sig_length*self.fs]
         noisy_snr = noisy_snr[:self.sig_length*self.fs]
-
-        # calulate spectrograms
-        # clean_snr_fft = librosa.stft(clean_snr, n_fft=512, hop_length=256).T
-        # noisy_snr_fft = librosa.stft(noisy_snr, n_fft=512, hop_length=256).T
-
-        # return {
-        #     'target_signal':clean_snr_fft.astype(np.complex64),
-        #     'noisy_signal':noisy_snr_fft.astype(np.complex64),
-        # }
 
         return {
             'target_signal':clean_snr.astype(np.float32),
