@@ -23,7 +23,7 @@ np.random.seed(0)
 
 EPOCHS = 300
 VAL_EVERY = 3
-KAPPA_BETA = 0.1
+KAPPA_BETA = None
 BATCH_SIZE = 8
 NUM_WORKERS = 2
 MODEL_FILE = None
