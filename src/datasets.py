@@ -11,7 +11,7 @@ from src.audio_helpers import segmental_snr_mixer
 class DNSChallangeDataset(Dataset):
     def __init__(self,
                  datapath:str,
-                 split:str,
+                 datapath_clean_speach:str,
                  sig_length:int=10,
                  fs:int=16000):
 
@@ -19,22 +19,14 @@ class DNSChallangeDataset(Dataset):
         self.fs = fs
 
         # get all clean speech signals
-        clean_speech_signals = []
-        for root, _, files in os.walk(f"{datapath}/clean"):
+        self.clean_speech_signals = []
+        for root, _, files in os.walk(f"{datapath_clean_speach}"):
             for file in files:
                 if file.endswith(".flac"):
-                    clean_speech_signals.append(os.path.join(root, file))
+                    self.clean_speech_signals.append(os.path.join(root, file))
 
         # scrmabel the list
-        np.random.shuffle(clean_speech_signals)
-
-        # split the list
-        if split == "train":
-            self.clean_speech_signals = clean_speech_signals[:int(len(clean_speech_signals)*0.99)]
-        elif split == "val":
-            self.clean_speech_signals = clean_speech_signals[int(len(clean_speech_signals)*0.99):]
-        else:
-            raise ValueError("split must be one of train, val")
+        np.random.shuffle(self.clean_speech_signals)
         
         # get all noise signals
         noise_signals = []

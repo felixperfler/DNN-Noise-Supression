@@ -23,13 +23,14 @@ np.random.seed(0)
 
 EPOCHS = 300
 VAL_EVERY = 3
-KAPPA_BETA = None
+KAPPA_BETA = 0.1
 BATCH_SIZE = 8
 NUM_WORKERS = 2
 MODEL_FILE = None
 FS = 16000
 LOGGING_DIR = f"{os.getcwd()}/runs_kappa/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" if KAPPA_BETA != None else\
         f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+DATASET = f"/scratch-cbe/users/felix.perfler/LibriSpeech"
 
 def main():
 
@@ -71,12 +72,12 @@ def main():
         checkpoint = torch.load(MODEL_FILE)
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
-    dataset_train = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
-                                    split="train", fs=FS)
+    dataset_train = DNSChallangeDataset(datapath=DATASET,
+                                        datapath_clean_speach=DATASET + "/train-clean-360", fs=FS)
     dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-    dataset_val = DNSChallangeDataset(datapath=f"{os.getcwd()}/datasets",
-                                    split="val", fs=FS)
+    dataset_val = DNSChallangeDataset(datapath=DATASET,
+                                        datapath_clean_speach=DATASET + "/test-clean", fs=FS)
     dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     # init tensorboard
