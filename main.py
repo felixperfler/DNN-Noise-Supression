@@ -3,6 +3,7 @@ import datetime
 import random
 import torch
 from torch.utils.data import DataLoader
+from torchaudio.transforms import Spectrogram
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 import numpy as np
@@ -24,13 +25,13 @@ np.random.seed(0)
 EPOCHS = 300
 VAL_EVERY = 3
 KAPPA_BETA = None
-BATCH_SIZE = 8
-NUM_WORKERS = 2
+BATCH_SIZE = 64
+NUM_WORKERS = 4
 MODEL_FILE = None
 FS = 16000
 LOGGING_DIR = f"{os.getcwd()}/runs_kappa/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" if KAPPA_BETA != None else\
         f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-DATASET = f"/scratch-cbe/users/felix.perfler/LibriSpeech"
+DATASET = "/scratch-cbe/users/felix.perfler/LibriSpeech"
 
 def main():
 
@@ -39,13 +40,13 @@ def main():
     print(f"Using device: {device}")
 
     model = TasNet(
-        enc_dim=128,
+        enc_dim=256,
         kernel=3,
-        feature_dim=64,
+        feature_dim=128,
         sr=FS,
         win=2,
         layer=8,
-        stack=3,
+        stack=4,
         num_spk=2,
         causal=False
     )
@@ -73,15 +74,21 @@ def main():
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     dataset_train = DNSChallangeDataset(datapath=DATASET,
-                                        datapath_clean_speach=DATASET + "/train-clean-360", fs=FS)
+                                        datapath_clean_speach=DATASET + "/dev-clean",
+                                        fs=FS,
+                                        sig_length=2)
     dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
     dataset_val = DNSChallangeDataset(datapath=DATASET,
-                                        datapath_clean_speach=DATASET + "/test-clean", fs=FS)
+                                        datapath_clean_speach=DATASET + "/test-clean",
+                                        fs=FS,
+                                        sig_length=2)
     dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     # init tensorboard
     writer = SummaryWriter(f"{LOGGING_DIR}")
+
+    specgram = Spectrogram(n_fft=512, win_length=512, hop_length=128, power=None)
 
     while epoch < EPOCHS:
         running_loss = 0
@@ -93,11 +100,10 @@ def main():
             optimizer.zero_grad()
 
             output_signal = model(noisy_signal)[:,0,:]
-
-            output_signal_fft = torch.fft.rfft(output_signal)
-            target_signal_fft = torch.fft.rfft(target_signal)
+            
+            output_signal_fft = specgram(output_signal)
+            target_signal_fft = specgram(target_signal)
             if KAPPA_BETA != None:
-
                 # get encoder weights for optimization
                 encoder_filterbank = model.encoder.weight.squeeze(1)
                 base_loss, loss = loss_fn(output_signal_fft, target_signal_fft, encoder_filterbank)
@@ -133,8 +139,8 @@ def main():
 
                     output_signal = model(noisy_signal)[:,0,:]
 
-                    output_signal_fft = torch.fft.rfft(output_signal)
-                    target_signal_fft = torch.fft.rfft(target_signal)
+                    output_signal_fft = specgram(output_signal)
+                    target_signal_fft = specgram(target_signal)
 
                     loss = loss_fn(output_signal_fft, target_signal_fft)
                     running_val_loss += loss.item()

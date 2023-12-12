@@ -9,7 +9,7 @@ from src import models
 
 # Conv-TasNet
 class TasNet(nn.Module):
-    def __init__(self, enc_dim=512, feature_dim=128, sr=16000, win=2, layer=8, stack=3, 
+    def __init__(self, enc_dim=512, feature_dim=128, sr=16000, win: float=2., layer: int=8, stack: int=3, 
                  kernel=3, num_spk=2, causal=False):
         super(TasNet, self).__init__()
         
@@ -30,6 +30,7 @@ class TasNet(nn.Module):
         
         # input encoder
         self.encoder = nn.Conv1d(1, self.enc_dim, self.win, bias=False, stride=self.stride)
+        # self.encoder = nn.Conv1d(1, self.enc_dim, self.win, bias=False, stride=0, padding_mode='circular')
         
         # TCN separator
         self.TCN = models.TCN(self.enc_dim, self.enc_dim*self.num_spk, self.feature_dim, self.feature_dim*4,
