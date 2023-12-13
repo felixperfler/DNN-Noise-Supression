@@ -25,7 +25,7 @@ np.random.seed(0)
 EPOCHS = 300
 VAL_EVERY = 3
 KAPPA_BETA = None
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 NUM_WORKERS = 4
 MODEL_FILE = None
 FS = 16000
@@ -74,7 +74,7 @@ def main():
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     dataset_train = DNSChallangeDataset(datapath=DATASET,
-                                        datapath_clean_speach=DATASET + "/dev-clean",
+                                        datapath_clean_speach=DATASET + "/train-clean-360",
                                         fs=FS,
                                         sig_length=2)
     dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
@@ -88,7 +88,7 @@ def main():
     # init tensorboard
     writer = SummaryWriter(f"{LOGGING_DIR}")
 
-    specgram = Spectrogram(n_fft=512, win_length=512, hop_length=128, power=None)
+    specgram = Spectrogram(n_fft=512, win_length=512, hop_length=128, power=None).to(device)
 
     while epoch < EPOCHS:
         running_loss = 0
