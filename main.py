@@ -24,7 +24,8 @@ np.random.seed(0)
 
 EPOCHS = 300
 VAL_EVERY = 3
-KAPPA_BETA = None
+KAPPA_BETA = 1e-3
+# KAPPA_BETA = None
 BATCH_SIZE = 32
 NUM_WORKERS = 4
 MODEL_FILE = None
@@ -145,8 +146,8 @@ def main():
                     loss = loss_fn(output_signal_fft, target_signal_fft)
                     running_val_loss += loss.item()
 
-                    pesq += np.mean(pesq_batch(FS, np.array(target_signal), np.array(output_signal), 'wb'))
-                    sisdr += ScaleInvariantSignalDistortionRatio()(torch.abs(torch.fft.rfft(output_signal)), torch.abs(torch.fft.rfft(target_signal)))
+                    pesq += np.mean(pesq_batch(FS, np.array(target_signal.cpu().detach().numpy()), np.array(output_signal.cpu().detach().numpy()), 'wb'))
+                    sisdr += ScaleInvariantSignalDistortionRatio()(torch.abs(torch.fft.rfft(output_signal.cpu().detach())), torch.abs(torch.fft.rfft(target_signal.cpu().detach())))
 
             image_signals, image_filterbank = gen_plots(noisy_signal[0].cpu().detach().numpy(),
                                                                 target_signal[0].cpu().detach().numpy(),
