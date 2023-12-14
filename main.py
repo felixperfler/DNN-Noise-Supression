@@ -26,13 +26,20 @@ EPOCHS = 300
 VAL_EVERY = 3
 KAPPA_BETA = 1e-3
 # KAPPA_BETA = None
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 NUM_WORKERS = 4
 MODEL_FILE = None
 FS = 16000
 LOGGING_DIR = f"{os.getcwd()}/runs_kappa/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" if KAPPA_BETA != None else\
         f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
 DATASET = "/scratch-cbe/users/felix.perfler/LibriSpeech"
+
+def calculate_condition_number(w):
+    w_hat = torch.sum(torch.abs(torch.fft.fft(w,dim=1))**2,dim=0)
+    B = torch.max(w_hat,dim=0).values
+    A = torch.min(w_hat,dim=0).values
+
+    return  B/A
 
 def main():
 
@@ -108,24 +115,14 @@ def main():
                 # get encoder weights for optimization
                 encoder_filterbank = model.encoder.weight.squeeze(1)
                 base_loss, loss = loss_fn(output_signal_fft, target_signal_fft, encoder_filterbank)
+                running_loss += base_loss.item()
             else:
                 loss = loss_fn(output_signal_fft, target_signal_fft)
+                running_loss += loss.item()
             
-            running_loss += loss.item()
             loss.backward()
 
             optimizer.step()
-        
-        image_signals, image_filterbank = gen_plots(noisy_signal[0].cpu().detach().numpy(),
-                    target_signal[0].cpu().detach().numpy(),
-                    output_signal[0].cpu().detach().numpy(),
-                    model.encoder.weight.cpu().detach().numpy().squeeze(1),
-                    epoch,
-                    FS,
-                    "Training")
-        
-        writer.add_image('Signals Training', image_signals, epoch)
-        writer.add_image('Filterbank Training', image_filterbank, epoch)
 
 
         if epoch % VAL_EVERY == 0:
@@ -149,17 +146,6 @@ def main():
                     pesq += np.mean(pesq_batch(FS, np.array(target_signal.cpu().detach().numpy()), np.array(output_signal.cpu().detach().numpy()), 'wb'))
                     sisdr += ScaleInvariantSignalDistortionRatio()(torch.abs(torch.fft.rfft(output_signal.cpu().detach())), torch.abs(torch.fft.rfft(target_signal.cpu().detach())))
 
-            image_signals, image_filterbank = gen_plots(noisy_signal[0].cpu().detach().numpy(),
-                                                                target_signal[0].cpu().detach().numpy(),
-                                                                output_signal[0].cpu().detach().numpy(),
-                                                                model.encoder.weight.cpu().detach().numpy().squeeze(1),
-                                                                epoch,
-                                                                FS,
-                                                                "Validation")
-            
-            writer.add_image('Signals Validation', image_signals, epoch)
-            writer.add_image('Filterbank Validation', image_filterbank, epoch)
-            
             
             writer.add_audio('Prediction Val', output_signal[0], epoch, sample_rate=FS)
             writer.add_audio('Target Val', target_signal[0], epoch, sample_rate=FS)
@@ -170,8 +156,10 @@ def main():
 
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),
                                         'Val': running_val_loss / len(dataloader_val)}, epoch)
+            writer.add_scalar('Condition Number', calculate_condition_number(model.encoder.weight.squeeze(1)), epoch)
         else:
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),}, epoch)
+            writer.add_scalar('Condition Number', calculate_condition_number(model.encoder.weight.squeeze(1)), epoch)
 
         # check if model save dir exists
         if not os.path.exists(f"{LOGGING_DIR}/models"):
