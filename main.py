@@ -32,7 +32,7 @@ MODEL_FILE = None
 FS = 16000
 LOGGING_DIR = f"{os.getcwd()}/runs_kappa/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" if KAPPA_BETA != None else\
         f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-DATASET = "users/felix.perfler/LibriSpeech"
+DATASET = "/users/felix.perfler/LibriSpeech"
 USE_FIR_TIGTHENER3000 = True
 SIGNAL_LENGTH = 5
 
