@@ -87,12 +87,11 @@ class TasNet(nn.Module):
             output = F.conv_transpose1d(masked_output.view(batch_size*self.num_spk, self.enc_dim, -1),
                             nn.Parameter(self.encoder.weight.detach().clone()),
                             stride=self.stride)
-            output = output[:,:,self.stride:-(rest+self.stride)].contiguous()  # B*C, 1, L
-            output = output.view(batch_size, self.num_spk, -1)  # B, C, T
         else:
             output = self.decoder(masked_output.view(batch_size*self.num_spk, self.enc_dim, -1))  # B*C, 1, L
-            output = output[:,:,self.stride:-(rest+self.stride)].contiguous()  # B*C, 1, L
-            output = output.view(batch_size, self.num_spk, -1)  # B, C, T
+        
+        output = output[:,:,self.stride:-(rest+self.stride)].contiguous()  # B*C, 1, L
+        output = output.view(batch_size, self.num_spk, -1)  # B, C, T
         
         return output
 
