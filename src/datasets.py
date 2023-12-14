@@ -25,6 +25,8 @@ class DNSChallangeDataset(Dataset):
                 if file.endswith(".flac"):
                     self.clean_speech_signals.append(os.path.join(root, file))
 
+        self.clean_speech_signals = self.clean_speech_signals[:16]
+
         # scrmabel the list
         np.random.shuffle(self.clean_speech_signals)
         

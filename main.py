@@ -1,6 +1,7 @@
 import os
 import datetime
 import random
+import argparse
 import torch
 from torch.utils.data import DataLoader
 from torchaudio.transforms import Spectrogram
@@ -22,19 +23,6 @@ torch.backends.cudnn.benchmark = False
 random.seed(0)
 np.random.seed(0)
 
-EPOCHS = 300
-VAL_EVERY = 3
-KAPPA_BETA = 1e-3
-# KAPPA_BETA = None
-BATCH_SIZE = 16
-NUM_WORKERS = 4
-MODEL_FILE = None
-FS = 16000
-LOGGING_DIR = f"{os.getcwd()}/runs_kappa/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" if KAPPA_BETA != None else\
-        f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-DATASET = "/users/felix.perfler/LibriSpeech"
-USE_FIR_TIGTHENER3000 = True
-SIGNAL_LENGTH = 5
 
 def calculate_condition_number(w):
     w_hat = torch.sum(torch.abs(torch.fft.fft(w,dim=1))**2,dim=0)
@@ -43,7 +31,18 @@ def calculate_condition_number(w):
 
     return  B/A
 
-def main():
+def main(args):
+    EPOCHS = args.epochs
+    VAL_EVERY = args.val_every
+    KAPPA_BETA = args.kappa_beta
+    BATCH_SIZE = args.batch_size
+    NUM_WORKERS = args.num_workers
+    MODEL_FILE = args.model_file
+    FS = args.fs
+    LOGGING_DIR = args.logging_dir
+    DATASET = args.dataset
+    USE_FIR_TIGTHENER3000 = args.use_fir_tightener3000
+    SIGNAL_LENGTH = args.signal_length
 
     device = torch.device("cuda") if torch.cuda.is_available() \
             else torch.device("cpu")
@@ -189,4 +188,18 @@ def main():
         epoch += 1
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--epochs", type=int, default=300, help="Number of epochs (default: 300)")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size (default: 16)")
+    parser.add_argument("--val_every", type=int, default=3, help="Validate every x epochs (default: 3)")
+    parser.add_argument("--num_workers", type=int, default=4, help="Number of workers (default: 4)")
+    parser.add_argument("--kappa_beta", type=float, default=None, help="Kappa Beta (if None, no kappa beta loss is used, default:  None)")
+    parser.add_argument("--model_file", type=str, default=None, help="Path to model file (default: None)")
+    parser.add_argument("--fs", type=int, default=16000, help="Sampling rate (default: 16000)")
+    parser.add_argument("--logging_dir", type=str, default=f"{os.getcwd()}/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}", help="Logging directory (default: ./<timestamp>)")
+    parser.add_argument("--dataset", type=str, required=True, help="Path to dataset")
+    parser.add_argument("--use_fir_tightener3000", action=argparse.BooleanOptionalAction, help="Use FIR Tightener3000 🔥🔥🔥🔥")
+    parser.add_argument("--signal_length", type=int, default=5, help="Signal length in seconds (default: 5)")  
+    
+    main(parser.parse_args())
