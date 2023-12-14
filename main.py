@@ -57,7 +57,8 @@ def main(args):
         layer=8,
         stack=4,
         num_spk=2,
-        causal=False
+        causal=False,
+        kappa3000=True if KAPPA_BETA != None else False
     )
 
     if MODEL_FILE != None:

@@ -10,7 +10,7 @@ from src import models
 # Conv-TasNet
 class TasNet(nn.Module):
     def __init__(self, enc_dim=512, feature_dim=128, sr=16000, win: float=2., layer: int=8, stack: int=3, 
-                 kernel=3, num_spk=2, causal=False):
+                 kernel=3, num_spk=2, causal=False, kappa3000=False):
         super(TasNet, self).__init__()
         
         # hyper parameters
@@ -27,6 +27,8 @@ class TasNet(nn.Module):
         self.kernel = kernel
 
         self.causal = causal
+
+        self.kappa3000 = kappa3000
         
         # input encoder
         self.encoder = nn.Conv1d(1, self.enc_dim, self.win, bias=False, stride=self.stride)
@@ -75,10 +77,17 @@ class TasNet(nn.Module):
         masks = torch.sigmoid(self.TCN(enc_output)).view(batch_size, self.num_spk, self.enc_dim, -1)  # B, C, N, L
         masked_output = enc_output.unsqueeze(1) * masks  # B, C, N, L
         
-        # waveform decoder
-        output = self.decoder(masked_output.view(batch_size*self.num_spk, self.enc_dim, -1))  # B*C, 1, L
-        output = output[:,:,self.stride:-(rest+self.stride)].contiguous()  # B*C, 1, L
-        output = output.view(batch_size, self.num_spk, -1)  # B, C, T
+        # # waveform decoder
+        if self.kappa3000:
+            output = F.conv_transpose1d(masked_output.view(batch_size*self.num_spk, self.enc_dim, -1),
+                            nn.Parameter(self.encoder.weight.detach().clone()),
+                            stride=self.stride)
+            output = output[:,:,self.stride:-(rest+self.stride)].contiguous()  # B*C, 1, L
+            output = output.view(batch_size, self.num_spk, -1)  # B, C, T
+        else:
+            output = self.decoder(masked_output.view(batch_size*self.num_spk, self.enc_dim, -1))  # B*C, 1, L
+            output = output[:,:,self.stride:-(rest+self.stride)].contiguous()  # B*C, 1, L
+            output = output.view(batch_size, self.num_spk, -1)  # B, C, T
         
         return output
 
