@@ -13,7 +13,7 @@ from torchmetrics.audio import ScaleInvariantSignalDistortionRatio
 from src.datasets import DNSChallangeDataset
 from conv_tasnet import TasNet
 from src.losses import ComplexCompressedMSELoss
-from src.logging_helpers import gen_plots
+from src.fb_utils import fir_tightener3000
 
 # set seed
 torch.manual_seed(0)
@@ -32,7 +32,9 @@ MODEL_FILE = None
 FS = 16000
 LOGGING_DIR = f"{os.getcwd()}/runs_kappa/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}" if KAPPA_BETA != None else\
         f"{os.getcwd()}/runs/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
-DATASET = "/scratch-cbe/users/felix.perfler/LibriSpeech"
+DATASET = "users/felix.perfler/LibriSpeech"
+USE_FIR_TIGTHENER3000 = True
+SIGNAL_LENGTH = 5
 
 def calculate_condition_number(w):
     w_hat = torch.sum(torch.abs(torch.fft.fft(w,dim=1))**2,dim=0)
@@ -61,10 +63,23 @@ def main():
 
     if MODEL_FILE != None:
         checkpoint = torch.load(MODEL_FILE)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        # TODO: check if device is correct
+        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
         epoch = checkpoint['epoch']
     else:
         epoch = 0
+
+    if USE_FIR_TIGTHENER3000:
+        # get encoder weights
+        encoder_filterbank = model.encoder.weight.squeeze(1).cpu().detach().numpy()
+        # pad encoder weights to signal length at the end
+        encoder_filterbank = np.pad(encoder_filterbank, ((0,0),(0,SIGNAL_LENGTH*FS-encoder_filterbank.shape[1])), 'constant', constant_values=0)
+        # get tightener weights
+        tightener_filterbank = fir_tightener3000(encoder_filterbank, model.win, eps=1.02)
+        tightener_filterbank = torch.tensor(tightener_filterbank[:,:model.win], dtype=torch.float32).unsqueeze(1)
+        # set encoder weights to tightener weights
+        model.encoder.weight = torch.nn.Parameter(tightener_filterbank)
+
     model.to(device)
 
     print("#params of model: ", sum(p.numel() for p in model.parameters()))
@@ -84,13 +99,13 @@ def main():
     dataset_train = DNSChallangeDataset(datapath=DATASET,
                                         datapath_clean_speach=DATASET + "/train-clean-360",
                                         fs=FS,
-                                        sig_length=2)
+                                        sig_length=SIGNAL_LENGTH)
     dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
     dataset_val = DNSChallangeDataset(datapath=DATASET,
                                         datapath_clean_speach=DATASET + "/test-clean",
                                         fs=FS,
-                                        sig_length=2)
+                                        sig_length=SIGNAL_LENGTH)
     dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
 
     # init tensorboard
