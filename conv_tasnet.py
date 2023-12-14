@@ -40,13 +40,12 @@ class TasNet(nn.Module):
 
         self.receptive_field = self.TCN.receptive_field
         
-        # output decoder
-        self.decoder = nn.ConvTranspose1d(self.enc_dim, 1, self.win, bias=False, stride=self.stride)
-
         if self.kappa3000:
             print("Using kappa3000 🔥🔥🔥 1e3")
         else:
             print("Not using kappa3000 🙊")
+            # output decoder
+            self.decoder = nn.ConvTranspose1d(self.enc_dim, 1, self.win, bias=False, stride=self.stride)
 
     def pad_signal(self, input):
 
