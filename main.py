@@ -145,9 +145,14 @@ def main(args):
 
         if epoch % VAL_EVERY == 0:
             running_val_loss = 0
-            pesq = 0
-            sisdr = 0
+            pesq = 0.0
+            sisdr = 0.0
             model.eval()
+
+            output_signal = np.zeros(0)
+            target_signal = np.zeros(0)
+            noisy_signal = np.zeros(0)
+
             with torch.no_grad():
                 for batch in tqdm(dataloader_val):
                     noisy_signal = batch['noisy_signal'].to(device)
@@ -167,7 +172,7 @@ def main(args):
                             np.array(target_signal.cpu().detach().numpy()),
                             np.array(output_signal.cpu().detach().numpy()),
                             'wb')
-                        )
+                        ).item()
                     sisdr += ScaleInvariantSignalDistortionRatio()(
                             torch.abs(torch.fft.rfft(output_signal.cpu().detach())),
                             torch.abs(torch.fft.rfft(target_signal.cpu().detach()))
@@ -207,10 +212,13 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size (default: 16)")
     parser.add_argument("--val_every", type=int, default=3, help="Validate every x epochs (default: 3)")
     parser.add_argument("--num_workers", type=int, default=4, help="Number of workers (default: 4)")
-    parser.add_argument("--kappa_beta", type=float, default=None, help="Kappa Beta (if None, no kappa beta loss is used, default:  None)")
+    parser.add_argument("--kappa_beta", type=float, default=None,
+                        help="Kappa Beta (if None, no kappa beta loss is used, default:  None)")
     parser.add_argument("--model_file", type=str, default=None, help="Path to model file (default: None)")
     parser.add_argument("--fs", type=int, default=16000, help="Sampling rate (default: 16000)")
-    parser.add_argument("--logging_dir", type=str, default=f"{os.getcwd()}/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}", help="Logging directory (default: ./<timestamp>)")
+    parser.add_argument("--logging_dir", type=str,
+                        default=f"{os.getcwd()}/{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}",
+                        help="Logging directory (default: ./<timestamp>)")
     parser.add_argument("--dataset", type=str, required=True, help="Path to dataset")
     parser.add_argument("--use_fir_tightener3000", action=argparse.BooleanOptionalAction, help="Use FIR Tightener3000 🔥🔥🔥🔥")
     parser.add_argument("--signal_length", type=int, default=5, help="Signal length in seconds (default: 5)")  
