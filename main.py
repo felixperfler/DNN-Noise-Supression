@@ -60,11 +60,11 @@ def main(args):
         causal=False,
         kappa3000=True if KAPPA_BETA != None else False
     )
+    model.to(device)
 
     if MODEL_FILE != None:
-        checkpoint = torch.load(MODEL_FILE)
-        # TODO: check if device is correct
-        model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+        checkpoint = torch.load(MODEL_FILE, map_location=device)
+        model.load_state_dict(checkpoint['model_state_dict'])
         epoch = checkpoint['epoch']
     else:
         epoch = 0
@@ -80,7 +80,6 @@ def main(args):
         # set encoder weights to tightener weights
         model.encoder.weight = torch.nn.Parameter(tightener_filterbank)
 
-    model.to(device)
 
     print("#params of model: ", sum(p.numel() for p in model.parameters()))
 
@@ -93,7 +92,7 @@ def main(args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.0001)
     
     if MODEL_FILE != None:
-        checkpoint = torch.load(MODEL_FILE)
+        checkpoint = torch.load(MODEL_FILE, map_location=device)
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     dataset_train = DNSChallangeDataset(datapath=DATASET,
