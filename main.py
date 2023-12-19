@@ -44,8 +44,7 @@ def main(args):
     USE_FIR_TIGTHENER3000 = args.use_fir_tightener3000
     SIGNAL_LENGTH = args.signal_length
 
-    device = torch.device("cuda") if torch.cuda.is_available() \
-            else torch.device("cpu")
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(f"Using device: {device}")
 
     model = TasNet(
@@ -73,7 +72,12 @@ def main(args):
         # get encoder weights
         encoder_filterbank = model.encoder.weight.squeeze(1).cpu().detach().numpy()
         # pad encoder weights to signal length at the end
-        encoder_filterbank = np.pad(encoder_filterbank, ((0,0),(0,SIGNAL_LENGTH*FS-encoder_filterbank.shape[1])), 'constant', constant_values=0)
+        encoder_filterbank = np.pad(
+                encoder_filterbank,
+                ((0,0),(0,SIGNAL_LENGTH*FS-encoder_filterbank.shape[1])),
+                'constant',
+                constant_values=0
+            )
         # get tightener weights
         tightener_filterbank = fir_tightener3000(encoder_filterbank, model.win, eps=1.02)
         tightener_filterbank = torch.tensor(tightener_filterbank[:,:model.win], dtype=torch.float32).unsqueeze(1)
@@ -157,8 +161,17 @@ def main(args):
                     loss = loss_fn(output_signal_fft, target_signal_fft)
                     running_val_loss += loss.item()
 
-                    pesq += np.mean(pesq_batch(FS, np.array(target_signal.cpu().detach().numpy()), np.array(output_signal.cpu().detach().numpy()), 'wb'))
-                    sisdr += ScaleInvariantSignalDistortionRatio()(torch.abs(torch.fft.rfft(output_signal.cpu().detach())), torch.abs(torch.fft.rfft(target_signal.cpu().detach())))
+                    pesq += np.mean(
+                        pesq_batch(
+                            FS,
+                            np.array(target_signal.cpu().detach().numpy()),
+                            np.array(output_signal.cpu().detach().numpy()),
+                            'wb')
+                        )
+                    sisdr += ScaleInvariantSignalDistortionRatio()(
+                            torch.abs(torch.fft.rfft(output_signal.cpu().detach())),
+                            torch.abs(torch.fft.rfft(target_signal.cpu().detach()))
+                        )
 
             
             writer.add_audio('Prediction Val', output_signal[0], epoch, sample_rate=FS)
