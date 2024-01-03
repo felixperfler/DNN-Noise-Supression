@@ -60,8 +60,7 @@ def main(args):
         num_spk=2,
         causal=False,
         kappa3000=True if KAPPA_BETA != None else False
-    )
-    model.to(device)
+    ).to(device)
 
     if MODEL_FILE != None:
         checkpoint = torch.load(MODEL_FILE, map_location=device)
