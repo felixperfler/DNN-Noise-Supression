@@ -1,5 +1,6 @@
 import os
 import random
+import torch
 from torch.utils.data import Dataset
 import numpy as np
 import soundfile
@@ -7,6 +8,15 @@ from scipy import signal
 import librosa
 
 from src.audio_helpers import segmental_snr_mixer
+
+
+# set seed
+torch.manual_seed(0)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+random.seed(0)
+np.random.seed(0)
+
 
 class DNSChallangeDataset(Dataset):
     def __init__(self,
@@ -24,6 +34,8 @@ class DNSChallangeDataset(Dataset):
             for file in files:
                 if file.endswith(".flac"):
                     self.clean_speech_signals.append(os.path.join(root, file))
+
+        self.clean_speech_signals = self.clean_speech_signals[:10]
 
         # scrmabel the list
         np.random.shuffle(self.clean_speech_signals)

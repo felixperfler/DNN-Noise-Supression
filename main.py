@@ -43,14 +43,16 @@ def main(args):
     DATASET = args.dataset
     USE_FIR_TIGTHENER3000 = args.use_fir_tightener3000
     SIGNAL_LENGTH = args.signal_length
+    ENC_DIM = args.enc_dim
+    FEATURE_DIM = args.feature_dim
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print(f"Using device: {device}")
 
     model = TasNet(
-        enc_dim=256,
+        enc_dim=ENC_DIM,
         kernel=3,
-        feature_dim=128,
+        feature_dim=FEATURE_DIM,
         sr=FS,
         win=2,
         layer=8,
@@ -103,13 +105,16 @@ def main(args):
                                         datapath_clean_speach=DATASET + "/train-clean-360",
                                         fs=FS,
                                         sig_length=SIGNAL_LENGTH)
-    dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+    # make dataloader deterministic
+    g = torch.Generator()
+    g.manual_seed(0)
+    dataloader_train = DataLoader(dataset_train, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, generator=g)
 
     dataset_val = DNSChallangeDataset(datapath=DATASET,
                                         datapath_clean_speach=DATASET + "/test-clean",
                                         fs=FS,
                                         sig_length=SIGNAL_LENGTH)
-    dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+    dataloader_val = DataLoader(dataset_val, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, generator=g)
 
     # init tensorboard
     writer = SummaryWriter(f"{LOGGING_DIR}")
@@ -221,6 +226,8 @@ if __name__ == "__main__":
                         help="Logging directory (default: ./<timestamp>)")
     parser.add_argument("--dataset", type=str, required=True, help="Path to dataset")
     parser.add_argument("--use_fir_tightener3000", action=argparse.BooleanOptionalAction, help="Use FIR Tightener3000 🔥🔥🔥🔥")
-    parser.add_argument("--signal_length", type=int, default=5, help="Signal length in seconds (default: 5)")  
+    parser.add_argument("--signal_length", type=int, default=5, help="Signal length in seconds (default: 5)")
+    parser.add_argument("--enc_dim", type=int, default=256, help="Number of encoder bins (default: 256)")  
+    parser.add_argument("--feature_dim", type=int, default=128, help="Number of feature bins (default: 128)")
     
     main(parser.parse_args())
