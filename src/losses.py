@@ -10,8 +10,8 @@ class ComplexCompressedMSELoss(torch.nn.Module):
         self.beta = beta
 
     def forward(self, enhanced: torch.tensor, clean: torch.tensor, w=None):
-        enhanced_mag = torch.max(torch.abs(enhanced), 1e-8*torch.ones_like(enhanced))
-        clean_mag = torch.max(torch.abs(clean), 1e-8*torch.ones_like(clean))
+        enhanced_mag = torch.max(torch.abs(enhanced), 1e-8*torch.ones(enhanced.shape))
+        clean_mag = torch.max(torch.abs(clean), 1e-8*torch.ones(clean.shape))
 
         enhanced_unit_phasor = torch.div(enhanced, enhanced_mag)
         clean_unit_phasor = torch.div(clean, clean_mag)
