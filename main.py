@@ -169,8 +169,14 @@ def main(args):
                     output_signal_fft = specgram(output_signal)
                     target_signal_fft = specgram(target_signal)
 
-                    loss = loss_fn(output_signal_fft, target_signal_fft)
-                    running_val_loss += loss.item()
+                    if KAPPA_BETA != None:
+                        # get encoder weights for optimization
+                        encoder_filterbank = model.encoder.weight.squeeze(1)
+                        base_loss, loss = loss_fn(output_signal_fft, target_signal_fft, encoder_filterbank)
+                        running_val_loss += base_loss.item()
+                    else:
+                        loss = loss_fn(output_signal_fft, target_signal_fft)
+                        running_val_loss += loss.item()
 
                     pesq += np.mean(
                         pesq_batch(
