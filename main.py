@@ -137,7 +137,10 @@ def main(args):
             target_signal_fft = specgram(target_signal)
             if KAPPA_BETA != None:
                 # get encoder weights for optimization
-                encoder_filterbank = model.encoder.weight.squeeze(1)
+                if model.type == "DataParallel":
+                    encoder_filterbank = model.module.encoder.weight.squeeze(1)
+                else:
+                    encoder_filterbank = model.encoder.weight.squeeze(1)
                 base_loss, loss = loss_fn(output_signal_fft, target_signal_fft, encoder_filterbank)
                 running_loss += base_loss.item()
             else:
@@ -170,8 +173,10 @@ def main(args):
                     target_signal_fft = specgram(target_signal)
 
                     if KAPPA_BETA != None:
-                        # get encoder weights for optimization
-                        encoder_filterbank = model.encoder.weight.squeeze(1)
+                        if model.type == "DataParallel":
+                            encoder_filterbank = model.module.encoder.weight.squeeze(1)
+                        else:
+                            encoder_filterbank = model.encoder.weight.squeeze(1)
                         base_loss, loss = loss_fn(output_signal_fft, target_signal_fft, encoder_filterbank)
                         running_val_loss += base_loss.item()
                     else:
