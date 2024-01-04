@@ -62,7 +62,10 @@ def main(args):
         causal=False,
         kappa3000=True if KAPPA_BETA != None else False
     )
-    model = nn.DataParallel(model, device_ids=[0, 1]).to(device)
+    if device == torch.device("cuda"):
+        model = nn.DataParallel(model, device_ids=[0, 1]).to(device)
+    else:
+        model = model.to(device)
 
     if MODEL_FILE != None:
         checkpoint = torch.load(MODEL_FILE, map_location=device)
@@ -137,7 +140,7 @@ def main(args):
             target_signal_fft = specgram(target_signal)
             if KAPPA_BETA != None:
                 # get encoder weights for optimization
-                if model.type == "DataParallel":
+                if device == torch.device("cuda"):
                     encoder_filterbank = model.module.encoder.weight.squeeze(1)
                 else:
                     encoder_filterbank = model.encoder.weight.squeeze(1)
@@ -173,7 +176,7 @@ def main(args):
                     target_signal_fft = specgram(target_signal)
 
                     if KAPPA_BETA != None:
-                        if model.type == "DataParallel":
+                        if device == torch.device("cuda"):
                             encoder_filterbank = model.module.encoder.weight.squeeze(1)
                         else:
                             encoder_filterbank = model.encoder.weight.squeeze(1)
