@@ -78,8 +78,10 @@ def main(args):
         # get encoder weights
         if device == torch.device("cuda"):
             encoder_filterbank = model.module.encoder.weight.squeeze(1).cpu().detach().numpy()
+            win = model.module.win
         else:
             encoder_filterbank = model.encoder.weight.squeeze(1).cpu().detach().numpy()
+            win = model.win
         # pad encoder weights to signal length at the end
         encoder_filterbank = np.pad(
                 encoder_filterbank,
@@ -88,8 +90,8 @@ def main(args):
                 constant_values=0
             )
         # get tightener weights
-        tightener_filterbank = fir_tightener3000(encoder_filterbank, model.win, eps=1.02)
-        tightener_filterbank = torch.tensor(tightener_filterbank[:,:model.win], dtype=torch.float32).unsqueeze(1)
+        tightener_filterbank = fir_tightener3000(encoder_filterbank, win, eps=1.02)
+        tightener_filterbank = torch.tensor(tightener_filterbank[:,:win], dtype=torch.float32).unsqueeze(1)
         # set encoder weights to tightener weights
         if device == torch.device("cuda"):
             model.module.encoder.weight = torch.nn.Parameter(tightener_filterbank)
@@ -97,7 +99,7 @@ def main(args):
             model.encoder.weight = torch.nn.Parameter(tightener_filterbank)
 
 
-    print("#params of model: ", sum(p.numel() for p in model.parameters()))
+    # print("#params of model: ", sum(p.numel() for p in model.parameters()))
 
     if KAPPA_BETA == None:
         loss_fn = ComplexCompressedMSELoss()
