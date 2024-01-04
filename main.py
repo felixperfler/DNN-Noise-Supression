@@ -3,6 +3,7 @@ import datetime
 import random
 import argparse
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchaudio.transforms import Spectrogram
 from tensorboardX import SummaryWriter
@@ -60,7 +61,8 @@ def main(args):
         num_spk=2,
         causal=False,
         kappa3000=True if KAPPA_BETA != None else False
-    ).to(device)
+    )
+    model = nn.DataParallel(model, device_ids=[0, 1]).to(device)
 
     if MODEL_FILE != None:
         checkpoint = torch.load(MODEL_FILE, map_location=device)
