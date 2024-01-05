@@ -216,10 +216,19 @@ def main(args):
 
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),
                                         'Val': running_val_loss / len(dataloader_val)}, epoch)
-            writer.add_scalar('Condition Number', calculate_condition_number(model.encoder.weight.squeeze(1)), epoch)
+            if KAPPA_BETA != None:
+                condition_number = calculate_condition_number(model.module.encoder.weight.squeeze(1))
+            else:
+                condition_number = calculate_condition_number(model.encoder.weight.squeeze(1))
+            writer.add_scalar('Condition Number', condition_number, epoch)
         else:
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),}, epoch)
-            writer.add_scalar('Condition Number', calculate_condition_number(model.encoder.weight.squeeze(1)), epoch)
+
+            if KAPPA_BETA != None:
+                condition_number = calculate_condition_number(model.module.encoder.weight.squeeze(1))
+            else:
+                condition_number = calculate_condition_number(model.encoder.weight.squeeze(1))
+            writer.add_scalar('Condition Number', condition_number, epoch)
 
         # check if model save dir exists
         if not os.path.exists(f"{LOGGING_DIR}/models"):

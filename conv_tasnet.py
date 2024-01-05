@@ -84,7 +84,7 @@ class TasNet(nn.Module):
         # # waveform decoder
         if self.kappa3000:
             output = F.conv_transpose1d(masked_output.view(batch_size*self.num_spk, self.enc_dim, -1),
-                            nn.Parameter(self.encoder.weight.detach().clone()),
+                            nn.Parameter(self.encoder.weight.detach().clone()).to(input.device),
                             stride=self.stride)
         else:
             output = self.decoder(masked_output.view(batch_size*self.num_spk, self.enc_dim, -1))  # B*C, 1, L
