@@ -216,7 +216,7 @@ def main(args):
 
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),
                                         'Val': running_val_loss / len(dataloader_val)}, epoch)
-            if KAPPA_BETA != None:
+            if device == torch.device("cuda"):
                 condition_number = calculate_condition_number(model.module.encoder.weight.squeeze(1))
             else:
                 condition_number = calculate_condition_number(model.encoder.weight.squeeze(1))
@@ -224,7 +224,7 @@ def main(args):
         else:
             writer.add_scalars('Loss', {'Train': running_loss / len(dataloader_train),}, epoch)
 
-            if KAPPA_BETA != None:
+            if device == torch.device("cuda"):
                 condition_number = calculate_condition_number(model.module.encoder.weight.squeeze(1))
             else:
                 condition_number = calculate_condition_number(model.encoder.weight.squeeze(1))
