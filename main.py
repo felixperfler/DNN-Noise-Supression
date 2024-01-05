@@ -63,7 +63,7 @@ def main(args):
         kappa3000=True if KAPPA_BETA != None else False
     )
     if device == torch.device("cuda"):
-        model = nn.DataParallel(model, device_ids=[0, 1]).to(device)
+        model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).to(device)
     else:
         model = model.to(device)
 
