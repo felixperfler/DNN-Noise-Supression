@@ -62,17 +62,6 @@ def main(args):
         causal=False,
         kappa3000=True if KAPPA_BETA != None else False
     )
-    if device == torch.device("cuda"):
-        model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).to(device)
-    else:
-        model = model.to(device)
-
-    if MODEL_FILE != None:
-        checkpoint = torch.load(MODEL_FILE, map_location=device)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        epoch = checkpoint['epoch']
-    else:
-        epoch = 0
 
     if USE_FIR_TIGTHENER3000:
         # get encoder weights
@@ -98,6 +87,17 @@ def main(args):
         else:
             model.encoder.weight = torch.nn.Parameter(tightener_filterbank)
 
+    if device == torch.device("cuda"):
+        model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).to(device)
+    else:
+        model = model.to(device)
+
+    if MODEL_FILE != None:
+        checkpoint = torch.load(MODEL_FILE, map_location=device)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        epoch = checkpoint['epoch']
+    else:
+        epoch = 0
 
     # print("#params of model: ", sum(p.numel() for p in model.parameters()))
 
