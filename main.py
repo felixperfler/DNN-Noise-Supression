@@ -65,12 +65,8 @@ def main(args):
 
     if USE_FIR_TIGTHENER3000:
         # get encoder weights
-        if device == torch.device("cuda"):
-            encoder_filterbank = model.module.encoder.weight.squeeze(1).cpu().detach().numpy()
-            win = model.module.win
-        else:
-            encoder_filterbank = model.encoder.weight.squeeze(1).cpu().detach().numpy()
-            win = model.win
+        encoder_filterbank = model.encoder.weight.squeeze(1).cpu().detach().numpy()
+        win = model.win
         # pad encoder weights to signal length at the end
         encoder_filterbank = np.pad(
                 encoder_filterbank,
@@ -82,10 +78,7 @@ def main(args):
         tightener_filterbank = fir_tightener3000(encoder_filterbank, win, eps=1.02)
         tightener_filterbank = torch.tensor(tightener_filterbank[:,:win], dtype=torch.float32).unsqueeze(1)
         # set encoder weights to tightener weights
-        if device == torch.device("cuda"):
-            model.module.encoder.weight = torch.nn.Parameter(tightener_filterbank)
-        else:
-            model.encoder.weight = torch.nn.Parameter(tightener_filterbank)
+        model.encoder.weight = torch.nn.Parameter(tightener_filterbank)
 
     if device == torch.device("cuda"):
         model = nn.DataParallel(model, device_ids=[0, 1, 2, 3]).to(device)
